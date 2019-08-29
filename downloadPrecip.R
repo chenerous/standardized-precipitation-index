@@ -6,6 +6,7 @@
 #### notes:
 #### this code requires the RCurl library
 #### to calculate the spi, need to have at least 30 years of data
+#### wget is not required for this code and would be a good alternative to using this code
 
 #### read and eval config file
 configFile <- "spi.config"
