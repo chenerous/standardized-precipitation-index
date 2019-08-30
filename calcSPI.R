@@ -26,7 +26,7 @@ source("readConfig.R")
 #### set up some stuff (values, arrays)
 numYears = length(seq(yearFrom,yearTo))
 numMonths=numYears*12
-monthList<- rep(seq(1,12),length(numYears))
+monthList<- rep(seq(1,12),numYears)
 yearList<- c()
 for (year in yearFrom:yearTo){yearList <- c(yearList,rep(year,12))}
 nLon = 300 # the gridding of the NOAA CPC gridded CONUS precip data 
@@ -104,11 +104,14 @@ for (i in spi_interval:numMonths){
   }
 }
 
-for (iMonth in 1:12) {
-  monthSequence=seq(iMonth,numMonths,by=12)
-  intervalRankData[,,monthSequence]<- apply(intervalData[,,monthSequence],c(1,2),rank,na.last=FALSE)
+for (i in 1:nLon){
+  for (j in 1:nLat){
+    for (iMonth in 1:12) {
+      monthSequence=seq(iMonth,numMonths,by=12)
+      intervalRankData[i,j,monthSequence]<- rank(intervalData[i,j,monthSequence],na.last=FALSE)
+    }
+  }
 }
-
 
 ###########################################
 # calculate sum over years 
@@ -269,7 +272,7 @@ for (i in 1:nLon){
     
     z_emp[i,j,monthSequence]=qnorm(z_emp[i,j,monthSequence])
     # fix order somehow
-    z_emp[i,j,monthSequence]=z_emp[i,j,intervalRankData[i,j,monthSequence]]
+    z_emp[i,j,monthSequence]=z_emp[i,j,monthSequence[intervalRankData[i,j,monthSequence]]]
   }
 } }
 
