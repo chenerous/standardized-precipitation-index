@@ -15,7 +15,13 @@
 ####        month 2 = NA
 ####        month 3 = total rain in months 1-3
 ####        month 4 = total rain in months 2-4
-#### 
+#### 4.  rank the years (by cell-month of year)
+#### 5.  estimate gamma parameters
+#### 6.  fit for the same gamma parameters (for an alternate estimate)
+#### 7.  calculate cumulative probability (for both estimates of gamma parameters)
+#### 8.  do equiprobability transformation from H(x) to SPI (for both estimate of gamma parameters)
+#### 9.  estimate empirical SPI
+#### 10. save output
 #####################################################################
 
 #### read and eval config file
