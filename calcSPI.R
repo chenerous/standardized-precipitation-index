@@ -1,9 +1,13 @@
 #####################################################################
 #### title:  calcSPI.R
 #### 
-#### purpose:  calculate standardized precipitation index
+#### purpose:  calculate standardized precipitation index 
 ####
-#### add references
+#### reference:
+#### McKee, T.B., N.J. Doesken, and J. Kleist, 1993. 
+####  The relationship of drought frequency and duration ot time scales. 
+####  Eighth Conference on Applied Climatology, American Meteorological Society, 
+####  Jan 17-23, 1993, Anaheim CA, pp. 179-186
 ####
 #### Input:  daily precipitation of 0.25 lat-lon grid in units of 0.1mm
 #### Steps:  
@@ -16,12 +20,28 @@
 ####        month 3 = total rain in months 1-3
 ####        month 4 = total rain in months 2-4
 #### 4.  rank the years (by cell-month of year)
-#### 5.  estimate gamma parameters
-#### 6.  fit for the same gamma parameters (for an alternate estimate)
+#### estimate the SPI  ways
+#### the SPI assumes that the precipitation distribution is fit by gamma distribution
+#### 5.  estimate gamma parameters with the maximum likelihood solution (Thom 1966)
+#### 6.  fit the data directly for a second estimate of the same gamma parameters ('fit' version)
 #### 7.  calculate cumulative probability (for both estimates of gamma parameters)
 #### 8.  do equiprobability transformation from H(x) to SPI (for both estimate of gamma parameters)
 #### 9.  estimate empirical SPI
 #### 10. save output
+####
+#### output: 
+#### RData file with three estimates of SPI -- 'z', 'z_fit', 'z_emp' 
+#### on a 0.25 degree lat-lon grid for monthly values
+#### -- 'Lon', 'Lat', 'monthList', 'yearList'
+####
+#### SPI classes:
+#### SPI <= -2	Extremely dry
+#### -2 < SPI <- -1.5	Severely dry
+#### -1.5 < SPI <= -1	Moderately dry
+#### -1 < SPI <= 1	Near normal
+#### 1 < SPI <=1.5	Moderately wet
+#### 1.5 < SPI <= 2	Severely wet
+#### SPI >= 2	Extremely wet
 #####################################################################
 
 #### read and eval config file
@@ -124,7 +144,7 @@ for (i in 1:nLon){
 # calculate the probability of zero precip (q)
 # estimate parameters in gamma function (ahat,bhat) 
 ###########################################
-print ('estimate gamma paramters')
+print ('estimate gamma parameters')
 
 sumZero <- array(0,c(nLon,nLat,12))
 sumNonZero <- array(0,c(nLon,nLat,12))
@@ -263,7 +283,7 @@ tH_fit[ind1] = sqrt(log(1/(1.-H_fit[ind1])^2))
 z_fit=(tH_fit-(c0+c1*tH_fit+c2*tH_fit^2)/(1+d1*tH_fit+d2*tH_fit^2+d3*tH_fit^3))
 z_fit[ind0]=-z_fit[ind0]
 
-# calculated empirical values
+# calculate empirical values
 for (i in 1:nLon){
   for (j in 1:nLat){
   for (iMonth in 1:12) {
@@ -296,5 +316,6 @@ z_emp[z_emp< -3] <- -3
 ###########################################
 print ('save')
 
-spi_results = list(Lon,Lat,z,z_emp,z_fit)
+spi_results = list(monthList,yearList,Lon,Lat,z,z_fit,z_emp)
+names(spi_results)=c('monthList','yearList','Lon','Lat','z','z_fit','z_emp')
 save(spi_results,file=fileSPIout)
