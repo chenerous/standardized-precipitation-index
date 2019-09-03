@@ -17,7 +17,7 @@ library(leaflet)
 library(sf)
 
 #### read SPI data
-load("SPI_out.RData")
+load("SPI_out_3month.RData")
 
 ### pick out which estimate you want to use z, z_emp, z_fit
 zplot <- spi_results$z
@@ -54,7 +54,7 @@ pal <- colorBin("RdYlBu", domain = contig_counties$SPI, bins = bins)
 m<-leaflet(contig_counties) %>%
   addTiles() %>%
   setView(-95, 38, zoom = 4) %>%
-  addPolygons(label = ~NAMELSAD,
+  addPolygons(label = ~paste(NAMELSAD,": ",round(SPI,2),sep=""),
               fillColor = ~pal(SPI),
               stroke=FALSE,
               smoothFactor = 0,
@@ -64,18 +64,10 @@ m<-leaflet(contig_counties) %>%
   addLegend(pal = pal,
           values = ~SPI,
           opacity = 0.7,
-          title = NULL,
+          title =  paste(as.character(month),"/",as.character(year),' SPI',sep=""),
           position = "bottomright") 
 
-# m<-leaflet(contig_counties) %>%
-#   addTiles() %>%
-#   setView(-95, 38, zoom = 4) %>%
-#   addPolygons(label = ~NAMELSAD,
-#               color = "#444444", 
-#               weight = 1, 
-#               smoothFactor = 0.5,
-#               opacity = 1.0, 
-#               fillOpacity = 0.5,
-#               fillColor = ~colorQuantile("YlOrRd", ALAND)(ALAND),
-#               highlightOptions = highlightOptions(color = "white", weight = 2,
-#                                                   bringToFront = TRUE))
+#### above map has stroke=FALSE  => no lines between counties
+#### to put those lines back in, delete stroke=FALSE and add
+####  color = "#444444", weight = 1, 
+

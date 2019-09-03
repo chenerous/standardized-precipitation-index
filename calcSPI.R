@@ -318,4 +318,5 @@ print ('save')
 
 spi_results = list(monthList,yearList,Lon,Lat,z,z_fit,z_emp)
 names(spi_results)=c('monthList','yearList','Lon','Lat','z','z_fit','z_emp')
-save(spi_results,file=fileSPIout)
+fileOut = gsub(".RData",paste("_",spi_interval,"month.RData",sep=""),fileSPIout)
+save(spi_results,file=fileOut)

@@ -6,7 +6,7 @@
 library(mapdata)
 library(fields)
 
-load("SPI_out.RData")
+load("SPI_out_3month.RData")
 
 ### pick out which estimate you want to use z, z_emp, z_fit
 zplot <- spi_results$z_emp
