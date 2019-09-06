@@ -9,6 +9,15 @@
 ####  Eighth Conference on Applied Climatology, American Meteorological Society, 
 ####  Jan 17-23, 1993, Anaheim CA, pp. 179-186
 ####
+#### the gist of it:
+####
+#### a simple drought index which uses only precipitation data.  the spi is calculated monthly for 
+#### for chosen interval lengths (1-36 months) with the interval length indicating 
+#### the timescale the drought is characterized at.  in general, the precipitation data are fitted to a gamma 
+#### distribution, and then transformed to a normal distribution. the SPI values are interpreted as 
+#### the number of standard deviations by which the observed anomaly deviates from the long-term mean.
+#### 
+####
 #### Input:  daily precipitation of 0.25 lat-lon grid in units of 0.1mm
 #### Steps:  
 #### 1. read in precip
