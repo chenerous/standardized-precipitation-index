@@ -1,6 +1,10 @@
 ####  forecastYield.R 
 ####
-####  
+####  compare two very simple models for yields by their forecasting ability
+####  build the models using 25 years of data
+####  then test on the last 5 years of data
+####
+####  compare a stepwise linear regression model with a random forest model 
 ####
 #### inputs:  
 ####  output of the SPI code
@@ -10,11 +14,14 @@
 #### shapefile from:
 #### https://catalog.data.gov/dataset/tiger-line-shapefile-2016-nation-u-s-current-county-and-equivalent-national-shapefile/resource/fa774c9d-a098-4792-bfd4-94c7caa190b6
 ####
-#### libraries required: sf
+#### libraries required: sf, MASS, randomForest
 ####
 #### 
 
 library(sf)
+library(MASS)
+library(randomForest)
+
 
 ###########################################################################
 #### data reading and organization
@@ -91,12 +98,62 @@ for (i in length(countyList)){
 }
 
 
+
 #######################################################
 #### model A: linear stepwise regression
+#### only use weather data from May to October (generic crop season)
+#### this means 6 regressors per yield value (25 years of yields)
 ######################################################
 
+modYears=25
+predictYears =5
+predictedYields <- array(NA,c(dim(zplot_ordered)[1],5))
 
+#### for each county, build a model, then test it
+for (i in 1:length(countyList)){
+  if (!all(is.na(yields_ordered[i,]))){
+    #### create model data frame
+    y=yields_ordered[i,1:modYears]
+    x1=zplot_ordered[i,which(monthList==5)[1:modYears]]
+    x2=zplot_ordered[i,which(monthList==6)[1:modYears]]
+    x3=zplot_ordered[i,which(monthList==7)[1:modYears]]
+    x4=zplot_ordered[i,which(monthList==8)[1:modYears]]
+    x5=zplot_ordered[i,which(monthList==9)[1:modYears]]
+    x6=zplot_ordered[i,which(monthList==10)[1:modYears]]
+    mydata=data.frame(y,x1,x2,x3,x4,x5,x6)
+    #### use stepwise linear regression to pick out important regressors
+    model <- lm(y~x1+x2+x3+x4+x5+x6,data=mydata,na.action=na.exclude)
+    step<- stepAIC(model,direction='both')
+    formula <- formula(step)
+    #### pull out only important regressors and predict
+    varnames <- names(step$model)[2:length(names(step$model))]
+    newdata <- data.frame(y)
+    for (j in 1:length(varnames)){
+      newdata <- cbind(newdata,get(varnames[j]))
+    }
+    names(newdata)[2:(1+length(varnames))]=varnames
+    model <- lm(formula,newdata,na.action=na.exclude)
+    #### fix below
+    #### create pred data frame
+    y=yields_ordered[i,(numYears-predictYears+1):numYears]
+    x1=zplot_ordered[i,which(monthList==5)[(numYears-predictYears+1):numYears]]
+    x2=zplot_ordered[i,which(monthList==6)[(numYears-predictYears+1):numYears]]
+    x3=zplot_ordered[i,which(monthList==7)[(numYears-predictYears+1):numYears]]
+    x4=zplot_ordered[i,which(monthList==8)[(numYears-predictYears+1):numYears]]
+    x5=zplot_ordered[i,which(monthList==9)[(numYears-predictYears+1):numYears]]
+    x6=zplot_ordered[i,which(monthList==10)[(numYears-predictYears+1):numYears]]
+    newdata <- data.frame(y)
+    for (j in 1:length(varnames)){
+      newdata <- cbind(newdata,get(varnames[j]))
+    }
+    newdata <- newdata[2:(1+length(varnames))]
+    names(newdata)=varnames
+    predictedYields[i,]=predict(model,newdata)
+  }
+}
 
 #######################################################
 #### model B: random forest
 ######################################################
+
+
