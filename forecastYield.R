@@ -14,13 +14,14 @@
 #### shapefile from:
 #### https://catalog.data.gov/dataset/tiger-line-shapefile-2016-nation-u-s-current-county-and-equivalent-national-shapefile/resource/fa774c9d-a098-4792-bfd4-94c7caa190b6
 ####
-#### libraries required: sf, MASS, randomForest
+#### libraries required: sf, MASS, randomForest, ggplot2
 ####
 #### 
 
 library(sf)
 library(MASS)
 library(randomForest)
+library(ggplot2)
 
 
 ###########################################################################
@@ -250,19 +251,38 @@ yhat.bag = predict(bag.County.Corn,newdata=County.Corn)
 ### Mclean County is one of the largest corn producing counties in the US
 ### FIPS = 17113
 ######################################################
+# countyfips=17113
+# i0 <- which(as.numeric(IDList) == countyfips)
+# plot(yearSeq,yields_ordered[i0,],pch=16,cex=1,col='red',type='b',xlab='Year',ylab='Yield Relative to Normal (bu/ac)',main='Example of Yield Prediction Performance')
+# points(yearSeq,predictedYields[i0,],pch=16,type='b')
+# 
+# j0 <- which(County.Corn$county == countyfips)
+# points(yearSeq,yhat.bag[j0],col='blue',pch=16,type='b')
+# abline(v=2014)
+# text(2000,-60,c("Red points are observed yields"),cex=0.7)
+# text(2000,-65,c("Black points are regression prediction"),cex=0.7)
+# text(2000,-70,c("Blue points are random forest prediction"),cex=0.7)
+# text(2000,-75,c("Model is trained on data before 2014"),cex=0.7)
+# text(2000,-80,c("Model is predicting data after 2013"),cex=0.7)
+
 countyfips=17113
 i0 <- which(as.numeric(IDList) == countyfips)
-plot(yearSeq,yields_ordered[i0,],pch=16,cex=1,col='red',type='b',xlab='Year',ylab='Yield Relative to Normal (bu/ac)',main='Example of Yield Prediction Performance')
-points(yearSeq,predictedYields[i0,],pch=16,type='b')
-
 j0 <- which(County.Corn$county == countyfips)
-points(yearSeq,yhat.bag[j0],col='blue',pch=16,type='b')
-abline(v=2014)
-text(2000,-60,c("Red points are observed yields"),cex=0.7)
-text(2000,-65,c("Black points are regression prediction"),cex=0.7)
-text(2000,-70,c("Blue points are random forest prediction"),cex=0.7)
-text(2000,-75,c("Model is trained on data before 2014"),cex=0.7)
-text(2000,-80,c("Model is predicting data after 2013"),cex=0.7)
+
+mclean.data = data.frame(yearSeq,yields_ordered[i0,],predictedYields[i0,])
+names(mclean.data) = c("Year","Observed","Modeled")
+mclean.data$Method = rep("Regression",30)
+
+alt.data= data.frame(yearSeq,yields_ordered[i0,],yhat.bag[j0])
+names(alt.data) = c("Year","Observed","Modeled")
+alt.data$Method = rep("RandomForest",30)
+
+mclean.data = rbind(mclean.data,alt.data)
+
+p <- ggplot(mclean.data, aes(x = Year, y = Observed)) +geom_rect(aes(xmin=2014,xmax=2018,ymin=-Inf,ymax=Inf),alpha=0.05,fill="lightskyblue3")+geom_line(color='gray30',size=1.5)+geom_line(data=mclean.data, aes(x = Year, y = Modeled),col="green4",size=1) + ggtitle("Deviation from Normal Corn Yield (bu/ac) \nMcLean County, IL")
+p + facet_grid(rows = vars(Method))
+
+
 
 #######################################################
 #### compare results:  scatter
