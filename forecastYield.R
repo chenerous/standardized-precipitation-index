@@ -1,6 +1,6 @@
 ####  forecastYield.R 
 ####
-####  compare two very simple models for yields by their forecasting ability
+####  test models for yields by their forecasting ability
 ####  build the models using 25 years of data
 ####  then test on the last 5 years of data
 ####
@@ -77,7 +77,8 @@ countyLonList = counties$INTPTLON
 rm(counties)
 for (i in 1:30) gc()
 
-yields <- read.csv("../NASS_corn_1989_2018.csv")
+yields <- read.csv("../NASS_corn_1989_2008.csv")
+yields <- rbind(yields,read.csv("../NASS_corn_2009_2018.csv"))
 yields_ordered = array(NA,c(dim(zplot_ordered)[1],numYears))
 for (i in 1:length(stateList)){
   i0 <-which(yields$State.ANSI == as.numeric(stateList[i]) & yields$County.ANSI == as.numeric(countyList[i]))
@@ -88,7 +89,7 @@ for (i in 1:length(stateList)){
 #######################################################
 #### detrend yields (linear trends only right now!)
 ######################################################
-for (i in length(countyList)){
+for (i in 1:length(countyList)){
   if (!all(is.na(yields_ordered[i,]))){
         
     model <- lm(yields_ordered[i,]~seq(1,numYears),na.action=na.exclude)
@@ -111,7 +112,7 @@ predictedYields <- array(NA,c(dim(zplot_ordered)[1],5))
 
 #### for each county, build a model, then test it
 for (i in 1:length(countyList)){
-  if (!all(is.na(yields_ordered[i,]))){
+  if (length(which(!is.na(yields_ordered[i,]) & abs(yields_ordered[i,]) > .1)) > 1){
     #### create model data frame
     y=yields_ordered[i,1:modYears]
     x1=zplot_ordered[i,which(monthList==5)[1:modYears]]
@@ -123,32 +124,40 @@ for (i in 1:length(countyList)){
     mydata=data.frame(y,x1,x2,x3,x4,x5,x6)
     #### use stepwise linear regression to pick out important regressors
     model <- lm(y~x1+x2+x3+x4+x5+x6,data=mydata,na.action=na.exclude)
-    step<- stepAIC(model,direction='both')
-    formula <- formula(step)
-    #### pull out only important regressors and predict
-    varnames <- names(step$model)[2:length(names(step$model))]
-    newdata <- data.frame(y)
-    for (j in 1:length(varnames)){
-      newdata <- cbind(newdata,get(varnames[j]))
-    }
-    names(newdata)[2:(1+length(varnames))]=varnames
-    model <- lm(formula,newdata,na.action=na.exclude)
-    #### fix below
+    result <- try(step<- stepAIC(model,direction='both'))
+    if (class(result) != "try-error"){
+      formula <- formula(step)}
     #### create pred data frame
     y=yields_ordered[i,(numYears-predictYears+1):numYears]
-    x1=zplot_ordered[i,which(monthList==5)[(numYears-predictYears+1):numYears]]
-    x2=zplot_ordered[i,which(monthList==6)[(numYears-predictYears+1):numYears]]
-    x3=zplot_ordered[i,which(monthList==7)[(numYears-predictYears+1):numYears]]
-    x4=zplot_ordered[i,which(monthList==8)[(numYears-predictYears+1):numYears]]
-    x5=zplot_ordered[i,which(monthList==9)[(numYears-predictYears+1):numYears]]
-    x6=zplot_ordered[i,which(monthList==10)[(numYears-predictYears+1):numYears]]
-    newdata <- data.frame(y)
-    for (j in 1:length(varnames)){
-      newdata <- cbind(newdata,get(varnames[j]))
+    if (!all(is.na(y))){
+      x1=zplot_ordered[i,which(monthList==5)[(numYears-predictYears+1):numYears]]
+      x2=zplot_ordered[i,which(monthList==6)[(numYears-predictYears+1):numYears]]
+      x3=zplot_ordered[i,which(monthList==7)[(numYears-predictYears+1):numYears]]
+      x4=zplot_ordered[i,which(monthList==8)[(numYears-predictYears+1):numYears]]
+      x5=zplot_ordered[i,which(monthList==9)[(numYears-predictYears+1):numYears]]
+      x6=zplot_ordered[i,which(monthList==10)[(numYears-predictYears+1):numYears]]
+      #### pull out only important regressors and predict
+      if (class(result) != "try-error"){
+        if (dim(step$model)[2] > 1){
+          varnames <- names(step$model)[2:length(names(step$model))]
+          newdata <- data.frame(y)
+          for (j in 1:length(varnames)){
+            newdata <- cbind(newdata,get(varnames[j]))
+          }
+          names(newdata)[2:(1+length(varnames))]=varnames
+          model <- lm(formula,newdata,na.action=na.exclude)
+          newdata <- data.frame(y)
+          for (j in 1:length(varnames)){
+            newdata <- cbind(newdata,get(varnames[j]))
+          }
+          newdata <- newdata[2:(1+length(varnames))]
+          names(newdata)=varnames
+        }else{
+          newdata=data.frame(y,x1,x2,x3,x4,x5,x6)
+        }
+      }
+      predictedYields[i,]=predict(model,newdata)
     }
-    newdata <- newdata[2:(1+length(varnames))]
-    names(newdata)=varnames
-    predictedYields[i,]=predict(model,newdata)
   }
 }
 
@@ -156,4 +165,92 @@ for (i in 1:length(countyList)){
 #### model B: random forest
 ######################################################
 
+# #### for each county, build a model, then test it
+# #### ordered data is 7 features of 30 observations
+# for (i in 1:length(countyList)){
+#   if (!all(is.na(yields_ordered[i,]))){
+#     #### order data
+#     yield=yields_ordered[i,]
+#     month5=zplot_ordered[i,which(monthList==5)]
+#     month6=zplot_ordered[i,which(monthList==6)]
+#     month7=zplot_ordered[i,which(monthList==7)]
+#     month8=zplot_ordered[i,which(monthList==8)]
+#     month9=zplot_ordered[i,which(monthList==9)]
+#     month10=zplot_ordered[i,which(monthList==10)]
+#     County.Corn = data.frame(yield,month5,month6,month7,month8,month9,month10)  
+#     #### fix below (need to deal with NAs)
+#     set.seed(1)
+#     bag.County.Corn=randomForest(yield~.,data=County.Corn,subset=seq(1,25),mtry=6,importance=TRUE)
+#     bag.County.Corn
+#     yhat.bag = predict(bag.County.Corn,newdata=County.Corn)
+#     plot(yhat.bag, County.Corn$yield)
+#     points(yhat.bag[25:30], County.Corn$yield[25:30],col='red')
+#     abline(0,1)
+#   }
+# }
 
+#### ordered data features:  yields, 6 1-month spi values, county, year  
+yield=c()
+month5=c()
+month6=c()
+month7=c()
+month8=c()
+month9=c()
+month10=c()
+county=c()
+year=c()
+for (i in 1:length(countyList)){
+  if (!all(is.na(yields_ordered[i,]))){
+    for (j in 1:length(yearSeq)){
+      if (!is.na(yields_ordered[i,j])){
+        #### order data
+        yield=c(yield,yields_ordered[i,j])
+        month5=c(month5,zplot_ordered[i,which(monthList==5 & yearList == yearSeq[j])])
+        month6=c(month6,zplot_ordered[i,which(monthList==6 & yearList == yearSeq[j])])
+        month7=c(month7,zplot_ordered[i,which(monthList==7 & yearList == yearSeq[j])])
+        month8=c(month8,zplot_ordered[i,which(monthList==8 & yearList == yearSeq[j])])
+        month9=c(month9,zplot_ordered[i,which(monthList==9 & yearList == yearSeq[j])])
+        month10=c(month10,zplot_ordered[i,which(monthList==10 & yearList == yearSeq[j])])
+        county=c(county,as.numeric(IDList[i]))
+        year=c(year,yearSeq[j])
+      }
+    }
+  }
+}
+
+
+County.Corn.unordered = data.frame(yield,month5,month6,month7,month8,month9,month10,county,year)  
+i0 <- order(year)
+County.Corn <- County.Corn.unordered[i0,]
+
+i0 <- which(County.Corn$year <= 2013)
+set.seed(1)
+bag.County.Corn=randomForest(yield~.,data=County.Corn,subset=i0,mtry=6,importance=TRUE)
+bag.County.Corn
+yhat.bag = predict(bag.County.Corn,newdata=County.Corn)
+plot(yhat.bag, County.Corn$yield)
+
+varImpPlot(bag.County.Corn)
+
+#points(yhat.bag[25:30], County.Corn$yield[25:30],col='red')
+#abline(0,1)
+
+
+#######################################################
+#### compare results:  Mclean County, IL
+######################################################
+
+
+#######################################################
+#### compare results:  scatter
+######################################################
+
+
+#######################################################
+#### compare results:  mapping
+######################################################
+
+
+#######################################################
+#### compare results:  explaining the results
+######################################################
