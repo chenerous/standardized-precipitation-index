@@ -10,3 +10,5 @@ plotSPI_simple.R - make a simple map of the SPI (good for sanity checks of calcS
 plotSPI_leaflet.R - create an interactive map of the SPI using Leaflet
 
 spi_shiny_app/app.R - turn the Leaflet map into an interactive web app using Shiny (https://chenerous.shinyapps.io/spi_shiny_app/)
+
+forecastYield.R - use SPI to predict corn yields in the US using a stepwise linear regression and a random forest method

@@ -108,7 +108,7 @@ for (i in 1:length(countyList)){
 
 modYears=25
 predictYears =5
-predictedYields <- array(NA,c(dim(zplot_ordered)[1],5))
+predictedYields <- array(NA,c(dim(zplot_ordered)[1],numYears))
 
 #### for each county, build a model, then test it
 for (i in 1:length(countyList)){
@@ -128,14 +128,21 @@ for (i in 1:length(countyList)){
     if (class(result) != "try-error"){
       formula <- formula(step)}
     #### create pred data frame
-    y=yields_ordered[i,(numYears-predictYears+1):numYears]
+    #y=yields_ordered[i,(numYears-predictYears+1):numYears]
+    y=yields_ordered[i,]
     if (!all(is.na(y))){
-      x1=zplot_ordered[i,which(monthList==5)[(numYears-predictYears+1):numYears]]
-      x2=zplot_ordered[i,which(monthList==6)[(numYears-predictYears+1):numYears]]
-      x3=zplot_ordered[i,which(monthList==7)[(numYears-predictYears+1):numYears]]
-      x4=zplot_ordered[i,which(monthList==8)[(numYears-predictYears+1):numYears]]
-      x5=zplot_ordered[i,which(monthList==9)[(numYears-predictYears+1):numYears]]
-      x6=zplot_ordered[i,which(monthList==10)[(numYears-predictYears+1):numYears]]
+      # x1=zplot_ordered[i,which(monthList==5)[(numYears-predictYears+1):numYears]]
+      # x2=zplot_ordered[i,which(monthList==6)[(numYears-predictYears+1):numYears]]
+      # x3=zplot_ordered[i,which(monthList==7)[(numYears-predictYears+1):numYears]]
+      # x4=zplot_ordered[i,which(monthList==8)[(numYears-predictYears+1):numYears]]
+      # x5=zplot_ordered[i,which(monthList==9)[(numYears-predictYears+1):numYears]]
+      # x6=zplot_ordered[i,which(monthList==10)[(numYears-predictYears+1):numYears]]
+      x1=zplot_ordered[i,which(monthList==5)]
+      x2=zplot_ordered[i,which(monthList==6)]
+      x3=zplot_ordered[i,which(monthList==7)]
+      x4=zplot_ordered[i,which(monthList==8)]
+      x5=zplot_ordered[i,which(monthList==9)]
+      x6=zplot_ordered[i,which(monthList==10)]
       #### pull out only important regressors and predict
       if (class(result) != "try-error"){
         if (dim(step$model)[2] > 1){
@@ -165,6 +172,9 @@ for (i in 1:length(countyList)){
 #### model B: random forest
 ######################################################
 
+######################################################
+### below is a random forest using only one county's data
+######################################################
 # #### for each county, build a model, then test it
 # #### ordered data is 7 features of 30 observations
 # for (i in 1:length(countyList)){
@@ -189,6 +199,9 @@ for (i in 1:length(countyList)){
 #   }
 # }
 
+######################################################
+### below is a random forest using only all county data
+######################################################
 #### ordered data features:  yields, 6 1-month spi values, county, year  
 yield=c()
 month5=c()
@@ -217,40 +230,55 @@ for (i in 1:length(countyList)){
     }
   }
 }
-
-
 County.Corn.unordered = data.frame(yield,month5,month6,month7,month8,month9,month10,county,year)  
 i0 <- order(year)
 County.Corn <- County.Corn.unordered[i0,]
 
+### do random forest on all data before 2013
+print('start random forest')
 i0 <- which(County.Corn$year <= 2013)
 set.seed(1)
 bag.County.Corn=randomForest(yield~.,data=County.Corn,subset=i0,mtry=6,importance=TRUE)
-bag.County.Corn
+print('end random forest')
+
+### predict yields
 yhat.bag = predict(bag.County.Corn,newdata=County.Corn)
-plot(yhat.bag, County.Corn$yield)
-
-varImpPlot(bag.County.Corn)
-
-#points(yhat.bag[25:30], County.Corn$yield[25:30],col='red')
-#abline(0,1)
-
 
 #######################################################
 #### compare results:  Mclean County, IL
+###
+### Mclean County is one of the largest corn producing counties in the US
+### FIPS = 17113
 ######################################################
+countyfips=17113
+i0 <- which(as.numeric(IDList) == countyfips)
+plot(yearSeq,yields_ordered[i0,],pch=16,cex=1,col='red',type='b',xlab='Year',ylab='Yield Relative to Normal (bu/ac)',main='Example of Yield Prediction Performance')
+points(yearSeq,predictedYields[i0,],pch=16,type='b')
 
+j0 <- which(County.Corn$county == countyfips)
+points(yearSeq,yhat.bag[j0],col='blue',pch=16,type='b')
+abline(v=2014)
+text(2000,-60,c("Red points are observed yields"),cex=0.7)
+text(2000,-65,c("Black points are regression prediction"),cex=0.7)
+text(2000,-70,c("Blue points are random forest prediction"),cex=0.7)
+text(2000,-75,c("Model is trained on data before 2014"),cex=0.7)
+text(2000,-80,c("Model is predicting data after 2013"),cex=0.7)
 
 #######################################################
 #### compare results:  scatter
 ######################################################
 
-
-#######################################################
-#### compare results:  mapping
-######################################################
-
+par(mfrow=c(1,2))
+i0 <- which(yearSeq >=2014)
+plot(yields_ordered[,i0],predictedYields[,i0],pch=16,cex=0.5,xlim=range(-100,130),ylim=range(-100,130),xlab='Observed Yield Dev',ylab='Modeled Yield Dev',main='Stepwide Regeression')
+abline(0,1,col='red')
+j0 <- which(County.Corn$year >= 2014)
+plot(County.Corn$yield[j0],yhat.bag[j0],col='blue',pch=16,cex=0.5,xlim=range(-100,130),ylim=range(-100,130),xlab='Observed Yield Dev',ylab='Modeled Yield Dev',main='Random Forest')
+abline(0,1,col='red')
 
 #######################################################
 #### compare results:  explaining the results
 ######################################################
+
+#bag.County.Corn
+#varImpPlot(bag.County.Corn)
